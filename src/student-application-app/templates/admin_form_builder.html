@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% if form %}Edit{% else %}Create{% endif %} a form</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="admin-shell">
+        <section class="builder-shell">
+            <div class="institute-name" aria-label="Indian Institute of Technology Kharagpur">
+                <span lang="bn">ভারতীয় প্রযুক্তিবিদ্যা প্রতিষ্ঠান খড়গপুর</span>
+                <span lang="hi">भारतीय प्रौद्योगिकी संस्थান खड़गপুর</span>
+                <strong>INDIAN INSTITUTE OF TECHNOLOGY KHARAGPUR</strong>
+            </div>
+            <p class="eyebrow">Form builder</p>
+            <h1>{% if form %}Edit{% else %}Create{% endif %} a student form</h1>
+            <p class="intro">Add questions and choose how students should respond.</p>
+
+            {% if errors %}
+                <div class="errors" role="alert"><ul>{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul></div>
+            {% endif %}
+
+            <form method="post" id="builder-form" enctype="multipart/form-data">
+                <label for="logo">Logo <span class="hint">Optional image shown above the form title</span></label>
+                <input id="logo" name="logo" type="file" accept="image/jpeg,image/png,image/gif,image/webp">
+
+                <label for="title">Form title</label>
+                <input id="title" name="title" type="text" value="{{ form.title if form else '' }}" required placeholder="2026 Student Application">
+
+                <label for="description">Description</label>
+                <textarea id="description" name="description" rows="3" placeholder="Tell students what this form is for.">{{ form.description if form else '' }}</textarea>
+
+                <div class="question-builder-header">
+                    <h2>Questions</h2>
+                    <button class="add-question" type="button" id="add-question">Add question</button>
+                </div>
+                <div id="questions" class="question-list"></div>
+
+                <div class="form-actions">
+                    <a class="clear-filter" href="{{ url_for('admin_forms') }}">Cancel</a>
+                    <button type="submit">Save draft</button>
+                </div>
+            </form>
+        </section>
+    </main>
+    <template id="question-template">
+        <fieldset class="builder-question">
+            <legend>Question <span class="question-number"></span></legend>
+            <button class="remove-question" type="button">Remove</button>
+            <label>Question text</label>
+            <input name="question_label" type="text" required placeholder="What is your full name?">
+            <label>Response type</label>
+            <select name="question_type" class="question-type">
+                <option value="short_answer">Short answer</option>
+                <option value="long_answer">Long answer</option>
+                <option value="single_choice">Single choice</option>
+                <option value="multiple_choice">Multiple choice</option>
+                <option value="file_upload">Image or PDF upload</option>
+            </select>
+            <label>Options <span class="hint">Use commas for choice questions</span></label>
+            <input name="question_options" class="question-options" type="text" placeholder="Option A, Option B, Option C">
+            <label class="checkbox-label"><input name="question_required" value="0" type="checkbox"> Required</label>
+        </fieldset>
+    </template>
+    <script>
+        const list = document.getElementById('questions');
+        const template = document.getElementById('question-template');
+        const initialQuestions = {{ questions|map(attribute='label')|list|tojson }};
+        const initialQuestionData = {{ questions|map(attribute='question_type')|list|tojson }};
+        const initialOptions = {{ questions|map(attribute='options')|list|tojson }};
+        const initialRequired = {{ questions|map(attribute='required')|list|tojson }};
+        const addQuestion = () => {
+            const question = template.content.cloneNode(true);
+            const fieldset = question.querySelector('fieldset');
+            const index = list.children.length;
+            fieldset.querySelector('.question-number').textContent = index + 1;
+            fieldset.querySelector('input[name="question_label"]').name = `question_label_${index}`;
+            fieldset.querySelector('select[name="question_type"]').name = `question_type_${index}`;
+            fieldset.querySelector('input[name="question_options"]').name = `question_options_${index}`;
+            fieldset.querySelector('input[name="question_required"]').name = `question_required_${index}`;
+            fieldset.querySelector('input[name^="question_required_"]').value = '1';
+            if (initialQuestions[index]) {
+                fieldset.querySelector(`input[name="question_label_${index}"]`).value = initialQuestions[index];
+                fieldset.querySelector(`select[name="question_type_${index}"]`).value = initialQuestionData[index];
+                fieldset.querySelector(`input[name="question_options_${index}"]`).value = initialOptions[index];
+                fieldset.querySelector(`input[name="question_required_${index}"]`).checked = Boolean(initialRequired[index]);
+            }
+            fieldset.querySelector('.remove-question').addEventListener('click', () => {
+                fieldset.remove();
+                reindexQuestions();
+            });
+            const type = fieldset.querySelector('.question-type');
+            const options = fieldset.querySelector('.question-options');
+            const syncOptions = () => { options.disabled = !['single_choice', 'multiple_choice'].includes(type.value); };
+            type.addEventListener('change', syncOptions);
+            syncOptions();
+            list.appendChild(question);
+            reindexQuestions();
+        };
+        const reindexQuestions = () => {
+            [...list.children].forEach((item, index) => {
+                item.querySelector('.question-number').textContent = index + 1;
+                item.querySelector('input[name^="question_label_"]').name = `question_label_${index}`;
+                item.querySelector('select[name^="question_type_"]').name = `question_type_${index}`;
+                item.querySelector('input[name^="question_options_"]').name = `question_options_${index}`;
+                item.querySelector('input[name^="question_required_"]').name = `question_required_${index}`;
+            });
+        };
+        document.getElementById('add-question').addEventListener('click', addQuestion);
+        if (initialQuestions.length) {
+            initialQuestions.forEach(() => addQuestion());
+        } else {
+            addQuestion();
+        }
+    </script>
+</body>
+</html>
