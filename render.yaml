@@ -4,7 +4,7 @@ services:
     runtime: node
     rootDir: nptel-admin-portal
     buildCommand: npm install && npm run build
-    startCommand: npm start
+    startCommand: npx next start -p $PORT -H 0.0.0.0
     healthCheckPath: /
     plan: free
     envVars:
@@ -12,8 +12,6 @@ services:
         value: 20
       - key: NODE_ENV
         value: production
-      - key: NODE_OPTIONS
-        value: --max-old-space-size=450
       - key: NEXTAUTH_SECRET
         generateValue: true
 
@@ -26,8 +24,6 @@ services:
     healthCheckPath: /
     plan: free
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.10.14
       - key: FLASK_SECRET_KEY
         generateValue: true
       - key: ADMIN_USERNAME
